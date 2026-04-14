@@ -1,0 +1,392 @@
+---
+title: "C1. Running multiple scenarios"
+output: html_document
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  eval = TRUE
+)
+library(salmonMSE)
+library(here)
+```
+
+# Introduction
+
+Here, we demonstrate how to organize a simulation that evaluates alternative management strategies across uncertain biological parameters. 
+
+The management strategy to be evaluated is the terminal exploitation rate (ER), which is evaluated in separate simulation runs.
+
+The uncertain parameters for which we want to evaluate robustness is marine survival (SAR) as well as the stock-recruit (SR) Ricker parameters.
+We incorporate uncertainty in Ricker parameters within operating model, while marine survival is specified in separate operating models.
+
+Each operating model is a unique description of the system dynamics. Thus, we will run a separate operating model for each combination of ER and marine survival.
+
+I find the best approach is to write a single model run, then use that code in a wrapper function. 
+The wrapper function can then used to repeat the simulation for combination of parameters.
+Writing a wrapper function also facilitates the vectorization capabilities of R using the `lapply()` function to repeat over parameter combinations as well as the parallel processing capabilities.
+
+# Single model run
+
+Below is a single code chunk for a single model projection:
+
+```{r single-run}
+library(salmonMSE)
+nsim <- 20
+set.seed(234)
+
+alpha_mean <- 0.3
+alpha_sd <- 0.15
+alpha <- rlnorm(nsim, log(alpha_mean) - 0.5 * alpha_sd^2, alpha_sd)
+
+Emax_mean <- 1000 * 5000
+Emax_sd <- 0.2
+Emax <- rlnorm(nsim, log(Emax_mean) - 0.5 * Emax_sd^2, Emax_sd)
+
+SAR <- 0.01
+ER <- 0.1
+
+Bio <- new(
+  Class = "Bio",
+  maxage = 3,
+  p_mature = c(0, 0, 1),
+  SRrel = "Ricker",
+  kappa = alpha,
+  Smax = Emax,
+  phi = 1,
+  tau = 1,
+  Mjuv_NOS = c(0, -log(SAR)),
+  fec = c(0, 0, 5000),
+  p_female = 0.5
+)
+
+Harvest <- new(
+  "Harvest",
+  u_preterminal = 0,
+  u_terminal = ER,
+  vulT = c(1, 1, 1)
+)
+
+Hatchery <- new(
+  "Hatchery",
+  n_yearling = 0,
+  n_subyearling = 0
+)
+
+# Use flag to be explicit about assumptions
+Habitat <- new(
+  "Habitat",
+  use_habitat = FALSE
+)
+
+# Set number of juveniles at beginning of simulation
+InitNjuv_NOS <- array(1000, c(nsim, Bio@maxage, 1))
+InitNjuv_NOS[, 1:2, ] <- 1000 / SAR
+Historical <- new(
+  "Historical",
+  InitNjuv_NOS = InitNjuv_NOS,
+  InitNjuv_HOS = 0
+)
+
+proyears <- 20
+SOM <- new(
+  "SOM",
+  nsim = nsim,
+  proyears = proyears,
+  Bio = Bio,
+  Habitat = Habitat,
+  Hatchery = Hatchery,
+  Harvest = Harvest,
+  Historical = Historical
+)
+```
+
+
+```{r run-sim1, eval=TRUE}
+SMSE <- salmonMSE(SOM)
+
+if (!dir.exists(here("output"))) dir.create(here("output"))
+saveRDS(SMSE, here(file.path("output", "C1-one-run.rds")))
+```
+
+
+# Wrapper function
+
+Now let's put the above code chunk into a function. We'll call it `wrapper()`.
+
+This function has three arguments:
+
+- `SAR_vector` that contains various marine survival values
+- `ER_vector` that contains various exploitation rate values, same length as `SAR_vector`
+- `i` which is an integer that indexes both `SAR_vector` and `ER_vector`. When `wrapper()` is called, you supply a value for `i` and the function will grab the `i`-th value in `SAR_vector` and `ER_vector` for the model run.
+
+The rest of the function should be the same as the previous chunk.
+
+It will re-create the same operating model each time the function is called. Each model is identical except for the SAR and ER value.
+
+The wrapper function will then also run the projection:
+
+```{r}
+wrapper <- function(i, SAR_vector, ER_vector) {
+
+  require(salmonMSE)
+  
+  SAR <- SAR_vector[i]
+  ER <- ER_vector[i]
+
+  nsim <- 20
+  set.seed(234)
+
+  alpha_mean <- 0.3
+  alpha_sd <- 0.15
+  alpha <- rlnorm(nsim, log(alpha_mean) - 0.5 * alpha_sd^2, alpha_sd)
+
+  Emax_mean <- 1000 * 5000
+  Emax_sd <- 0.2
+  Emax <- rlnorm(nsim, log(Emax_mean) - 0.5 * Emax_sd^2, Emax_sd)
+
+  Bio <- new(
+    Class = "Bio",
+    maxage = 3,
+    p_mature = c(0, 0, 1),
+    SRrel = "Ricker",
+    kappa = alpha,
+    Smax = Emax,
+    phi = 1,
+    tau = 1,
+    Mjuv_NOS = c(0, -log(SAR)),
+    fec = c(0, 0, 5000),
+    p_female = 0.5
+  )
+
+  Harvest <- new(
+    "Harvest",
+    u_preterminal = 0,
+    u_terminal = ER,
+    vulT = c(1, 1, 1)
+  )
+
+  Hatchery <- new(
+    "Hatchery",
+    n_yearling = 0,
+    n_subyearling = 0
+  )
+
+  # Use flag to be explicit about assumptions
+  Habitat <- new(
+    "Habitat",
+    use_habitat = FALSE
+  )
+
+  # Set number of juveniles at beginning of simulation
+  InitNjuv_NOS <- array(1000, c(nsim, Bio@maxage, 1))
+  InitNjuv_NOS[, 1:2, ] <- 1000 / SAR
+  Historical <- new(
+    "Historical",
+    InitNjuv_NOS = InitNjuv_NOS,
+    InitNjuv_HOS = 0
+  )
+
+  proyears <- 20
+  SOM <- new(
+    "SOM",
+    nsim = nsim,
+    proyears = proyears,
+    Bio = Bio,
+    Habitat = Habitat,
+    Hatchery = Hatchery,
+    Harvest = Harvest,
+    Historical = Historical
+  )
+  
+  SMSE <- salmonMSE(SOM)
+
+  return(SMSE)
+}
+```
+
+# Creating simulation design
+
+One more thing, we also want to create our simulation design, i.e., which ERs and marine survival values we will use.
+
+Here's one way to create a grid of values with `expand.grid()`. Each row will identify a combination of values for our simulation:
+
+```{r}
+simulation_design <- expand.grid(
+  SAR_vector = seq(0.005, 0.03, 0.005),
+  ER_vector = seq(0, 0.5, 0.1)
+)
+```
+
+# Running wrapper function
+
+We have our wrapper function and simulation design, we can now run the simulation.
+
+There's various ways to run the projections depending on our computation capabilities, e.g., old laptop, new desktop, etc.
+
+For example, we can run a loop over each row of our `simulation_design` data frame or use `lapply()` to facilitate repeated simulations. 
+
+```{r, eval=FALSE}
+SMSE_list <- list()
+for (i in 1:nrow(simulation_design)) {
+  SMSE_list[[i]] <- wrapper(
+    i, 
+    SAR_vector = simulation_design$SAR_vector,
+    ER_vector = simulation_design$ER_vector
+  )
+}
+```
+
+```{r, eval=FALSE}
+SMSE_list <- lapply(
+  1:nrow(simulation_design), 
+  wrapper, 
+  SAR_vector = simulation_design$SAR_vector,
+  ER_vector = simulation_design$ER_vector
+)
+```
+
+But loops are computationally slower compared to parallel processing. We use the `snowfall` package to run simulations over 10 CPUs, then save the results:
+
+```{r run-sim-list, eval=TRUE}
+library(snowfall)
+sfInit(parallel = TRUE, cpus = 10)
+
+SMSE_list <- sfLapply(
+  1:nrow(simulation_design), 
+  wrapper,
+  SAR_vector = simulation_design$SAR_vector, 
+  ER_vector = simulation_design$ER_vector
+)
+
+sfStop()
+
+if (!dir.exists(here("output"))) dir.create(here("output"))
+saveRDS(SMSE_list, here(file.path("output", "C1-list.rds")))
+```
+
+# Results
+
+Now we have a list of `SMSE` objects in `SMSE_list`. 
+
+## Compare time series
+
+Whereas we saw previously that `report()` generates a Markdown report from a single model run, we alternatively now want to compare several model runs simultaneously in a figure.
+
+We have the `compare()` function which generates another markdown report that plots state variables from separate model runs. 
+
+We have 36 scenarios, so we may not be able to neatly all into individual figures. 
+So let's compare just the first 3 model runs:
+
+```{r, echo=FALSE}
+SMSE_list <- readRDS(here(file.path("output", "C1-list.rds")))
+```
+
+```{r}
+# Create names by pasting the SAR and ER values
+SMSE_names <- paste0("SAR = ", simulation_design$SAR_vector, ", ER = ", simulation_design$ER_vector)
+
+compare(
+  SMSE_list[1:3],
+  SMSE_names[1:3],
+  filename = "C1_compare",
+  dir = here("output")
+)
+```
+
+
+## Plotting functions
+
+`compare_statevar_ts()` generates a time series figure with base graphics. By default, it generates line plots for each stochastic simulation in the projection (which is messy), so let's directly proceed to quantile figures:
+
+```{r}
+compare_statevar_ts(SMSE_list[1:3], var = "NOS", quant = TRUE, names = SMSE_names[1:3])
+```
+
+We can also look to distributions within scenarios with `compare_statevar_hist()`, where there are choices to plot using the `density()` or `hist()` functions:
+
+```{r}
+compare_statevar_hist(SMSE_list[1:3], var = "NOS", names = SMSE_names[1:3], type = "density")
+```
+
+```{r}
+compare_statevar_hist(SMSE_list[1:3], var = "NOS", names = SMSE_names[1:3], type = "hist")
+```
+## Performance measures and decision tables
+
+Risk evaluation typically entails calculating a summary metric that describes the frequency that an objective was met in the simulation. 
+
+For example, we can calculate the probability that spawner abundance exceeded 0.85 SMSY (spawners at MSY).
+We have a function `SMSY85()` that does the calculation for us:
+
+Using the vectorization capabilities in R, we use `sapply()` to call `SMSY85()` for each of the objects in `SMSE_list`. We add an extra argument `Yrs = c(20, 20)` that specify the year range (we do the calculation at the end of the projection in year 20:
+
+```{r}
+sim_results <- simulation_design
+sim_results$spawner_objective <- sapply(SMSE_list, SMSY85, Yrs = c(20, 20))
+```
+
+We want to explore the decision space: at what exploitation rates are we likely to reach our objective across plausible values of marine survival?
+
+`plot_decision_table()` helps us plot a grid of values using ggplot.
+The colour scheme maps 0-1 with red to green (0.5 is white)
+
+```{r}
+plot_decision_table(
+  x = sim_results$SAR_vector,
+  y = sim_results$ER_vector,
+  z = sim_results$spawner_objective,
+  xlab = "Marine survival",
+  ylab = "Exploitation rate",
+  title = "Probability of exceeding spawner objective"
+)
+```
+
+Alternatively, `plot_decision_table2()` gives us more flexibility in the colour scheme by binning the summary metric into separate colour bins. Using the above figure, we refine the decision table based on the values we see in our results.
+
+We can envision running a larger grid to map out the full decision space. 
+
+```{r}
+plot_decision_table2(
+  x = sim_results$SAR_vector,
+  y = sim_results$ER_vector,
+  z = sim_results$spawner_objective,
+  xlab = "Marine survival",
+  ylab = "Exploitation rate",
+  zlab = "Probability\nspawner objective",
+  bin = c(0, 0.6, 0.7, 0.8),
+  bin_labels = c("0.00 - 0.59", "0.60 - 0.69", "0.70 - 0.79", "0.80 - 1"),
+  bin_col = c("pink", "white", "green", "green4")
+)
+```
+
+## Tradeoffs
+
+Frequently, objectives are conflicting. For example, lower exploitation rates would allow for more spawner escapement at the cost of catch. Tradeoff figures allow us to compare two summary metrics simultaneously.
+
+First, let's calculate our second metric, average catch, with a custom function:
+
+```{r}
+Catch_fn <- function(SMSE) mean(SMSE@KT_NOS[, 1, 20])
+sim_results$Mean_catch <- sapply(SMSE_list, Catch_fn)
+```
+
+Next, we can use `plot_tradeoff()`
+
+```{r}
+sim_subset <- sim_results[sim_results$SAR_vector == 0.03, ]
+plot_tradeoff(
+  pm1 = sim_subset$spawner_objective,
+  pm2 = sim_subset$Mean_catch,
+  x1 = sim_subset$SAR_vector,
+  x2 = sim_subset$ER_vector,
+  xlab = "Probability spawner objective",
+  ylab = "Mean catch",
+  x1lab = "Marine survival",
+  x2lab = "Exploitation rate"
+)
+```
+
+
+
