@@ -29,6 +29,7 @@ class?SOM
 The `SOM` object is built out of constituent objects that organizes the inputs and different management levers. Creating a full `SOM` looks something like this:
 
 ```{r eval=FALSE}
+# Note: demonstration only, this code chunk will not work
 SOM <- new(
   "SOM",
   Bio = Bio,
