@@ -251,7 +251,8 @@ But loops are computationally slower compared to parallel processing. We use the
 
 ```{r run-sim-list, eval=TRUE}
 library(snowfall)
-sfInit(parallel = TRUE, cpus = 10)
+cpus <- parallel::detectCores() - 2
+sfInit(parallel = TRUE, cpus = cpus)
 
 SMSE_list <- sfLapply(
   1:nrow(simulation_design), 
