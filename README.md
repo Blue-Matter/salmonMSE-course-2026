@@ -16,10 +16,16 @@ comprehensive decision support tool that evaluates and compares
 different management levers for Pacific salmon.
 
 Presentation materials will include an overview of the life cycle and
-features included in the projection model. Demonstrations will cover
-basic inputs to a single operating model, as well as more thorough
-walk-through of multiple model runs to generate figures and performance
-outcomes to compare management options.
+features included in the projection model.
+
+Demonstrations will cover basic inputs to a single operating model, as
+well as more thorough walk-through of multiple model runs to generate
+figures and performance outcomes to compare management options.
+
+Exercises are written in Markdown and can be rendered on local
+computers:
+<https://github.com/Blue-Matter/salmonMSE-course-2026/tree/main/exercises>
+(it is presumed that users will download or clone the entire repository)
 
 Feedback and guidance from participants can inform future development of
 salmonMSE.
