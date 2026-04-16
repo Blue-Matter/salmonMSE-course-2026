@@ -58,15 +58,22 @@ In general, we need to describe what happens in each age class.
 Here's the first example:
 
 ```{r}
-nsim <- 3
+nsim <- 20
 SAR <- 0.01
+
+set.seed(4389)
+kappa_mean <- 3
+kappa_sd <- 0.5
+
+library(EnvStats)
+kappa <- rnormTrunc(nsim, kappa_mean, kappa_sd, min = 1, max = Inf)
 
 Bio <- new("Bio")
 Bio@Name <- "Prototype"
 Bio@maxage <- 3
 Bio@p_mature <- c(0, 0, 1)
 Bio@SRrel <- "Ricker"
-Bio@kappa <- c(3, 4, 6)
+Bio@kappa <- kappa
 Bio@Smax <- 1000
 Bio@Mjuv_NOS <- c(0, -log(SAR))
 Bio@fec <- c(0, 0, 5000)
@@ -81,7 +88,7 @@ Bio <- new(
   maxage = 3,
   p_mature = c(0, 0, 1),
   SRrel = "Ricker",
-  kappa = c(3, 4, 6),
+  kappa = kappa,
   Smax = 1000,
   Mjuv_NOS = c(0, -log(SAR)),
   fec = c(0, 0, 5000),
@@ -95,7 +102,7 @@ The information contained in this object:
 - All fish mature at age 3
 - Natural-origin juvenile marine survival is 0.01, occurring between age 2 to 3
 - 50% of spawners are female, each with fecundity of 5 thousand eggs
-- The density-dependence of the population is described with a Ricker stock-recruit function. The productivity parameter (kappa) is stochastic over three simulations with corresponding values of 3, 4, and 6 adults/spawners. The Smax parameter is 1,000 spawners.
+- The density-dependence of the population is described with a Ricker stock-recruit function. The productivity parameter (kappa) is stochastic over 20 simulations with an average of 3 adults/spawner. The Smax parameter is 1,000 spawners.
 
 There's also some other default parameters that we are not discussing (for example, en-route survival to spawning grounds is 1, see `class?Bio`).
 
