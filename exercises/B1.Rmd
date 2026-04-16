@@ -302,6 +302,10 @@ Whereas we saw previously that `report()` generates a Markdown report from a sin
 
 We have the `compare()` function which generates another markdown report that plots state variables from separate model runs. 
 
+```{r, echo=FALSE}
+SMSE_2RS <- readRDS(here(file.path("output", "B1-two-release-strategies.rds")))
+```
+
 ```{r}
 model_names <- c("1 release strategy", "2 release strategies")
 
@@ -312,6 +316,7 @@ compare(
   dir = here("output")
 )
 ```
+
 `compare_statevar_ts()` generates a time series figure with base graphics. By default, it generates line plots for each stochastic simulation in the projection (which is messy), so let's directly proceed to quantile figures:
 
 ```{r}
@@ -440,9 +445,15 @@ if (!dir.exists(here("output"))) dir.create(here("output"))
 saveRDS(SMSE_custom, here(file.path("output", "B1-custom-brood.rds")))
 ```
 
-Compare our three model runs:
+```{r, echo=FALSE}
+SMSE_custom <- readRDS(here(file.path("output", "B1-custom-brood.rds")))
+```
 
-```{r}
+
+Let's compare our three model runs:
+
+```{r, eval=FALSE}
+# For some reason, this chunk breaks when rendering the file, but it works fine when run line by line
 model_names <- c("1 release strategy", "2 RS", "1 RS + custom rule")
 compare(
   list(SMSE, SMSE_2RS, SMSE_custom),
