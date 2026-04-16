@@ -5,6 +5,8 @@ Pacific Biological Station, Nanaimo, BC
 
 April 22, 2026
 
+[Agenda](https://docs.google.com/document/d/1vg3pELJrL4m9CZXUUASMj_JWnyb4beDJ/edit)
+
 ## Course website (Github repository)
 
 <https://github.com/Blue-Matter/salmonMSE-course-2026>
@@ -19,7 +21,7 @@ Presentation materials will include an overview of the life cycle and
 features included in the projection model.
 
 Demonstrations will cover basic inputs to a single operating model, as
-well as more thorough walk-through of multiple model runs to generate
+well as a more thorough walk-through of multiple model runs to generate
 figures and performance outcomes to compare management options.
 
 Exercises are written in Markdown and can be rendered on local
