@@ -44,10 +44,11 @@ Note: salmonMSE is also available on CRAN with
 `install.packages("salmonMSE")` but the CRAN version may not be up to
 date when the course starts.
 
-Other packages will be useful for managing the markdown files in this
+Other packages will be useful in the markdown exercises in this
 repository:
 
 ``` r
 install.packages("here")
 install.packages("EnvStats")
+install.packages("cowplot")
 ```

@@ -36,16 +36,24 @@ library(salmonMSE)
 nsim <- 20
 set.seed(234)
 
-alpha_mean <- 0.3
+SAR <- 0.01
+ER <- 0.1
+
+# We are sampling Ricker alpha values which represent maximum egg-smolt survival
+# While salmonMSE expects productivity values (recruits/spawner) in the kappa slot, 
+# we can set the phi conversion term to 1 to directly enter alpha
+alpha_mean <- 0.1
 alpha_sd <- 0.15
 alpha <- rlnorm(nsim, log(alpha_mean) - 0.5 * alpha_sd^2, alpha_sd)
 
+# We are sampling Ricker Emax = 1/beta (egg production that maximizes the stock-recruit function)
+# represent maximum egg-smolt survival
+# While salmonMSE expects Smax, 
+# we can set both phi and tau conversions term to 1 to directly enter Emax
+# Here mean Emax is the egg production from 1000 spawners (fecundity = 5,000 eggs)
 Emax_mean <- 1000 * 5000
 Emax_sd <- 0.2
 Emax <- rlnorm(nsim, log(Emax_mean) - 0.5 * Emax_sd^2, Emax_sd)
-
-SAR <- 0.01
-ER <- 0.1
 
 Bio <- new(
   Class = "Bio",
@@ -89,7 +97,7 @@ Historical <- new(
   InitNjuv_HOS = 0
 )
 
-proyears <- 20
+proyears <- 40
 SOM <- new(
   "SOM",
   nsim = nsim,
@@ -103,7 +111,7 @@ SOM <- new(
 ```
 
 
-```{r run-sim1, eval=TRUE}
+```{r run-sim1, eval=FALSE}
 SMSE <- salmonMSE(SOM)
 
 if (!dir.exists(here("output"))) dir.create(here("output"))
@@ -138,10 +146,18 @@ wrapper <- function(i, SAR_vector, ER_vector) {
   nsim <- 20
   set.seed(234)
 
-  alpha_mean <- 0.3
+  # We are sampling Ricker alpha values which represent maximum egg-smolt survival
+  # While salmonMSE expects productivity values (recruits/spawner) in the kappa slot, 
+  # we can set the phi conversion term to 1 to directly enter alpha
+  alpha_mean <- 0.1
   alpha_sd <- 0.15
   alpha <- rlnorm(nsim, log(alpha_mean) - 0.5 * alpha_sd^2, alpha_sd)
-
+  
+  # We are sampling Ricker Emax = 1/beta (egg production that maximizes the stock-recruit function)
+  # represent maximum egg-smolt survival
+  # While salmonMSE expects Smax, 
+  # we can set both phi and tau conversions term to 1 to directly enter Emax
+  # Here mean Emax is the egg production from 1000 spawners (fecundity = 5,000 eggs)
   Emax_mean <- 1000 * 5000
   Emax_sd <- 0.2
   Emax <- rlnorm(nsim, log(Emax_mean) - 0.5 * Emax_sd^2, Emax_sd)
@@ -215,7 +231,7 @@ Here's one way to create a grid of values with `expand.grid()`. Each row will id
 ```{r}
 simulation_design <- expand.grid(
   SAR_vector = seq(0.005, 0.03, 0.005),
-  ER_vector = seq(0, 0.5, 0.1)
+  ER_vector = seq(0.2, 0.7, 0.1)
 )
 ```
 
@@ -228,6 +244,7 @@ There's various ways to run the projections depending on our computation capabil
 For example, we can run a loop over each row of our `simulation_design` data frame or use `lapply()` to facilitate repeated simulations. 
 
 ```{r, eval=FALSE}
+# Not intended to run, run in parallel instead?
 SMSE_list <- list()
 for (i in 1:nrow(simulation_design)) {
   SMSE_list[[i]] <- wrapper(
@@ -239,6 +256,7 @@ for (i in 1:nrow(simulation_design)) {
 ```
 
 ```{r, eval=FALSE}
+# Not intended to run, run in parallel instead?
 SMSE_list <- lapply(
   1:nrow(simulation_design), 
   wrapper, 
@@ -285,9 +303,11 @@ SMSE_list <- readRDS(here(file.path("output", "C1-list.rds")))
 ```
 
 ```{r}
-# Create names by pasting the SAR and ER values
+# Create names for each model run by pasting the SAR and ER values
 SMSE_names <- paste0("SAR = ", simulation_design$SAR_vector, ", ER = ", simulation_design$ER_vector)
+```
 
+```{r, eval=TRUE}
 compare(
   SMSE_list[1:3],
   SMSE_names[1:3],
@@ -314,6 +334,7 @@ compare_statevar_hist(SMSE_list[1:3], var = "NOS", names = SMSE_names[1:3], type
 ```{r}
 compare_statevar_hist(SMSE_list[1:3], var = "NOS", names = SMSE_names[1:3], type = "hist")
 ```
+
 ## Performance measures and decision tables
 
 Risk evaluation typically entails calculating a summary metric that describes the frequency that an objective was met in the simulation. 
@@ -331,7 +352,13 @@ sim_results$spawner_objective <- sapply(SMSE_list, SMSY85, Yrs = c(20, 20))
 We want to explore the decision space: at what exploitation rates are we likely to reach our objective across plausible values of marine survival?
 
 `plot_decision_table()` helps us plot a grid of values using ggplot.
-The colour scheme maps 0-1 with red to green (0.5 is white)
+The colour scheme maps 0-1 with red to green (0.5 is white).
+
+We can see a nice frontier line that delineates our decision-making space: we can meet our spawner objective with higher exploitation rates only if marine survival increases as well.
+
+Exploitation rates of 0.2 would be most robust to the marine survival scenarios that we simulated.
+
+We can envision running a larger grid to map out the full decision space. 
 
 ```{r}
 plot_decision_table(
@@ -346,7 +373,6 @@ plot_decision_table(
 
 Alternatively, `plot_decision_table2()` gives us more flexibility in the colour scheme by binning the summary metric into separate colour bins. Using the above figure, we refine the decision table based on the values we see in our results.
 
-We can envision running a larger grid to map out the full decision space. 
 
 ```{r}
 plot_decision_table2(
@@ -364,7 +390,7 @@ plot_decision_table2(
 
 ## Tradeoffs
 
-Frequently, objectives are conflicting. For example, lower exploitation rates would allow for more spawner escapement at the cost of catch. Tradeoff figures allow us to compare two summary metrics simultaneously.
+Frequently, objectives are conflicting. For example, lower exploitation rates could allow for more escapement at the cost of catch. Tradeoff figures allow us to compare two summary metrics simultaneously.
 
 First, let's calculate our second metric, average catch, with a custom function:
 
@@ -373,21 +399,64 @@ Catch_fn <- function(SMSE) mean(SMSE@KT_NOS[, 1, 20])
 sim_results$Mean_catch <- sapply(SMSE_list, Catch_fn)
 ```
 
-Next, we can use `plot_tradeoff()`
+Next, we can use `plot_tradeoff()` to plot the two metrics (average catch and spawner probability) against each other.
+
+Typically, we want a nice frontier line that allows us to see the impact of our management options as in the decision tables above, but the tradeoff figure below is quite messy. 
 
 ```{r}
-sim_subset <- sim_results[sim_results$SAR_vector == 0.03, ]
 plot_tradeoff(
-  pm1 = sim_subset$spawner_objective,
-  pm2 = sim_subset$Mean_catch,
-  x1 = sim_subset$SAR_vector,
-  x2 = sim_subset$ER_vector,
+  pm1 = sim_results$spawner_objective,
+  pm2 = sim_results$Mean_catch,
+  x1 = sim_results$ER_vector,
+  x2 = sim_results$SAR_vector,
   xlab = "Probability spawner objective",
   ylab = "Mean catch",
-  x1lab = "Marine survival",
-  x2lab = "Exploitation rate"
+  x1lab = "Exploitation rate",
+  x2lab = "Marine survival"
 )
 ```
 
+Perhaps we can subset by marine survival can improve it a bit. 
 
+For a given value of marine survival, we see the long-term spawner-catch performance a bit more clearly with respect to exploitation rate.
+
+```{r}
+sim_subset <- sim_results[sim_results$SAR_vector == 0.02, ]
+
+library(ggplot2)
+plot_tradeoff(
+  pm1 = sim_subset$spawner_objective,
+  pm2 = sim_subset$Mean_catch,
+  x1 = sim_subset$ER_vector,
+  xlab = "Probability spawner objective",
+  ylab = "Mean catch",
+  x1lab = "Exploitation rate"
+) +
+  scale_colour_viridis_c() +
+  labs(title = "Marine survival = 0.02")
+```
+
+Another alternative is to plot the decision tables next to each other:
+
+```{r}
+g1 <- plot_decision_table(
+  x = sim_results$SAR_vector,
+  y = sim_results$ER_vector,
+  z = sim_results$spawner_objective,
+  xlab = "Marine survival",
+  ylab = "Exploitation rate",
+  title = "Probability spawner objective"
+)
+
+g2 <- plot_decision_table(
+  x = sim_results$SAR_vector,
+  y = sim_results$ER_vector,
+  z = round(sim_results$Mean_catch),
+  xlab = "Marine survival",
+  ylab = "Exploitation rate",
+  title = "Mean catch"
+)
+
+cowplot::plot_grid(g1, g2)
+```
 
