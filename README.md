@@ -60,3 +60,8 @@ install.packages("here")
 install.packages("EnvStats")
 install.packages("cowplot")
 ```
+
+## Presentations
+
+[Introduction to
+salmonMSE](https://drive.google.com/file/d/1lpIjrEL3_3HNr5EN-CvpPc-HlHuVQc9f/view?usp=sharing)
