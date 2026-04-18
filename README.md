@@ -32,6 +32,15 @@ computers:
 Feedback and guidance from participants can inform future development of
 salmonMSE.
 
+## Presentations
+
+[Introduction to
+salmonMSE](https://drive.google.com/file/d/1lpIjrEL3_3HNr5EN-CvpPc-HlHuVQc9f/view?usp=sharing) -
+presented by C. Holt, April 17, 2026
+
+[Workshop
+presentation](https://docs.google.com/presentation/d/1oEv8GoKZPtECqwL1RHZzDRwG1P6xlcVb/edit?usp=sharing)
+
 ## Software installation
 
 The R files and Markdown files are rendered in Rstudio IDE:
@@ -60,8 +69,3 @@ install.packages("here")
 install.packages("EnvStats")
 install.packages("cowplot")
 ```
-
-## Presentations
-
-[Introduction to
-salmonMSE](https://drive.google.com/file/d/1lpIjrEL3_3HNr5EN-CvpPc-HlHuVQc9f/view?usp=sharing)
