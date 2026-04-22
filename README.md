@@ -34,12 +34,18 @@ salmonMSE.
 
 ## Presentations
 
-[Introduction to
-salmonMSE](https://drive.google.com/file/d/1lpIjrEL3_3HNr5EN-CvpPc-HlHuVQc9f/view?usp=sharing) -
+[**1. Introduction to
+salmonMSE**](https://drive.google.com/file/d/1lpIjrEL3_3HNr5EN-CvpPc-HlHuVQc9f/view?usp=sharing) -
 presented by C. Holt, April 17, 2026
 
-[Workshop
-presentation](https://docs.google.com/presentation/d/1oEv8GoKZPtECqwL1RHZzDRwG1P6xlcVb/edit?usp=sharing)
+**2. Workshop presentation**:
+
+[PDF
+version](https://drive.google.com/open?id=1FIMyFBlXofG63XVDg5RI9iWjIwC1rurg&usp=drive_fs) -
+easier to access URLs
+
+[Powerpoint
+version](https://docs.google.com/presentation/d/1oEv8GoKZPtECqwL1RHZzDRwG1P6xlcVb/edit?usp=sharing)
 
 ## Software installation
 
