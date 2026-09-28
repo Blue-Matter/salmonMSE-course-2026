@@ -1,3 +1,7 @@
+# UPDATE 2026-09-28
+
+The tutorials have been updated and incorporated as tutorials on the online salmonMSE documentation. Available at: https://docs.salmonmse.com/articles/index.html
+
 
 # salmonMSE workshop
 
